@@ -8,7 +8,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-# torch.set_default_tensor_type('torch.cuda.FloatTensor')
 transform = transforms.Compose([transforms.ToTensor(),
                                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 trainset = torchvision.datasets.CIFAR10(root='data', train=True, download=True, transform=transform)
@@ -26,11 +25,11 @@ def imshow(img):
     plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
 
-dataiter = iter(trainloader)
-images, labels = dataiter.next()
+# dataiter = iter(trainloader)
+# images, labels = dataiter.next()
 
 # imshow(torchvision.utils.make_grid(images))
-print(' '.join('%5s' % classes[labels[j]] for j in range(4)))
+# print(' '.join('%5s' % classes[labels[j]] for j in range(4)))
 
 
 class Net(nn.Module):
@@ -54,6 +53,7 @@ class Net(nn.Module):
 
 
 net = Net()
+net.cuda()
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
@@ -62,7 +62,7 @@ for epoch in range(2):
     running_loss = 0.0
     for i, data in enumerate(trainloader, 0):
         inputs, labels = data
-        inputs, labels = Variable(inputs), Variable(labels)
+        inputs, labels = Variable(inputs).cuda(), Variable(labels).cuda()
         optimizer.zero_grad()
         outputs = net(inputs)
         loss = criterion(outputs, labels)
@@ -76,23 +76,12 @@ for epoch in range(2):
 
 print('Finished Training')
 
-dataiter = iter(testloader)
-images, labels = dataiter.next()
-
-# imshow(torchvision.utils.make_grid(images))
-print('Ground truth: ', ' '.join('%5s' % classes[labels[j]] for j in range(4)))
-
-outputs = net(Variable(images))
-_, predicted = torch.max(outputs.data, 1)
-predicted = predicted.numpy()
-np.squeeze(predicted, axis=1)
-print('Predicted: ', ' '.join('%5s' % classes[int(predicted[j])] for j in range(4)))
-
 correct = 0
 total = 0
 for data in testloader:
     images, labels = data
-    outputs = net(Variable(images))
+    labels = labels.cuda()
+    outputs = net(Variable(images).cuda())
     _, predicted = torch.max(outputs.data, 1)
     total += labels.size(0)
     correct += (predicted == labels).sum()
@@ -103,7 +92,8 @@ class_correct = list(0. for i in range(10))
 class_total = list(0. for i in range(10))
 for data in testloader:
     images, labels = data
-    outputs = net(Variable(images))
+    labels = labels.cuda()
+    outputs = net(Variable(images).cuda())
     _, predicted = torch.max(outputs.data, 1)
     c = (predicted == labels).squeeze()
     for i in range(4):
